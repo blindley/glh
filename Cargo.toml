@@ -1,0 +1,12 @@
+[package]
+name = "glh"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+keywords = ["opengl", "graphics", "gamedev"]
+description = "OpenGL helper functions."
+repository = "https://github.com/blindley/glh"
+readme = "README.md"
+
+[dependencies]
+gl = "0.14"
