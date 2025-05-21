@@ -6,3 +6,6 @@ pub use vertex_array::*;
 
 mod texture;
 pub use texture::*;
+
+mod util;
+pub use util::*;
