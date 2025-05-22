@@ -81,6 +81,16 @@ pub fn load_texture_2d<P: AsRef<Path>>(path: P) -> Result<GLuint, Error> {
     }
 }
 
+pub fn get_texture_size(texture: GLuint) -> Result<[i32; 3], Error> {
+    let mut size = [0; 3];
+    unsafe {
+        gl::GetTextureLevelParameteriv(texture, 0, gl::TEXTURE_WIDTH, &mut size[0]);
+        gl::GetTextureLevelParameteriv(texture, 0, gl::TEXTURE_HEIGHT, &mut size[1]);
+        gl::GetTextureLevelParameteriv(texture, 0, gl::TEXTURE_DEPTH, &mut size[2]);
+    }
+    Ok(size)
+}
+
 mod detail {
     use gl::types::*;
     use super::Error;
