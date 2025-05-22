@@ -1,6 +1,6 @@
 [package]
 name = "glh"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 keywords = ["opengl", "graphics", "gamedev"]
@@ -10,3 +10,8 @@ readme = "README.md"
 
 [dependencies]
 gl = "0.14"
+stb_image = { version = "0.3.0", optional = true }
+
+
+[features]
+texture-loading = ["stb_image"]

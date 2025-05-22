@@ -1,19 +1,8 @@
+#[cfg(feature = "texture-loading")]
+use std::path::Path;
 
 use gl::types::*;
 type Error = Box<dyn std::error::Error>;
-
-pub fn create_texture_2d_grayscale(
-    size: [i32; 2],
-    data: &[u8],
-) -> Result<GLuint, Error> {
-    if data.len() != (size[0] * size[1]) as usize {
-        return Err(format!("create_texture_2d_grayscale: Data length does not match size: expected {}, got {}", size[0] * size[1], data.len()).into());
-    }
-
-    use detail::TextureFormat::Grayscale;
-    detail::create_texture_2d(size, data, Grayscale)
-        .map_err(|e| format!("create_texture_2d_grayscale: {}", e).into())
-}
 
 pub fn create_texture_2d_rgb(
     size: [i32; 2],
@@ -41,13 +30,35 @@ pub fn create_texture_2d_rgba(
         .map_err(|e| format!("create_texture_2d_rgba: {}", e).into())
 }
 
+#[cfg(feature = "texture-loading")]
+pub fn load_texture_2d<P: AsRef<Path>>(path: P) -> Result<GLuint, Error> {
+    use stb_image::image::LoadResult::*;
+    match stb_image::image::load(path) {
+        ImageU8(img) => {
+            let size = [img.width as i32, img.height as i32];
+            match img.depth {
+                3 => create_texture_2d_rgb(size, &img.data),
+                4 => create_texture_2d_rgba(size, &img.data),
+                _ => Err(format!("Unsupported image depth: {}", img.depth).into()),
+            }
+        }
+        ImageF32(_) => {
+            // Handle floating point images if needed
+            Err("Floating point images are not currently supported".into())
+        }
+        Error(err) => {
+            // Handle error
+            Err(format!("Failed to load image: {}", err).into())
+        }
+    }
+}
+
 mod detail {
     use gl::types::*;
     use super::Error;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum TextureFormat {
-        Grayscale,
         RGB,
         RGBA,
     }
@@ -58,7 +69,6 @@ mod detail {
         format: TextureFormat,
     ) -> Result<GLuint, Error> {
         let (internal_format, gl_format, pixel_size) = match format {
-            TextureFormat::Grayscale => (gl::R8, gl::RED, 1),
             TextureFormat::RGB => (gl::RGB8, gl::RGB, 3),
             TextureFormat::RGBA => (gl::RGBA8, gl::RGBA, 4),
         };
