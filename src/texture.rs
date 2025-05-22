@@ -30,6 +30,32 @@ pub fn create_texture_2d_rgba(
         .map_err(|e| format!("create_texture_2d_rgba: {}", e).into())
 }
 
+pub fn create_texture_2d_grayscale(
+    size: [i32; 2],
+    data: &[u8],
+) -> Result<GLuint, Error> {
+    if data.len() != (size[0] * size[1]) as usize {
+        return Err(format!("create_texture_2d_grayscale: Data length does not match size: expected {}, got {}", size[0] * size[1], data.len()).into());
+    }
+
+    use detail::TextureFormat::Grayscale;
+    detail::create_texture_2d(size, data, Grayscale)
+        .map_err(|e| format!("create_texture_2d_grayscale: {}", e).into())
+}
+
+pub fn create_texture_2d_grayscale_alpha(
+    size: [i32; 2],
+    data: &[u8],
+) -> Result<GLuint, Error> {
+    if data.len() != (size[0] * size[1] * 2) as usize {
+        return Err(format!("create_texture_2d_grayscale_alpha: Data length does not match size: expected {}, got {}", size[0] * size[1] * 2, data.len()).into());
+    }
+
+    use detail::TextureFormat::GrayscaleAlpha;
+    detail::create_texture_2d(size, data, GrayscaleAlpha)
+        .map_err(|e| format!("create_texture_2d_grayscale_alpha: {}", e).into())
+}
+
 #[cfg(feature = "texture-loading")]
 pub fn load_texture_2d<P: AsRef<Path>>(path: P) -> Result<GLuint, Error> {
     use stb_image::image::LoadResult::*;
@@ -37,6 +63,8 @@ pub fn load_texture_2d<P: AsRef<Path>>(path: P) -> Result<GLuint, Error> {
         ImageU8(img) => {
             let size = [img.width as i32, img.height as i32];
             match img.depth {
+                1 => create_texture_2d_grayscale(size, &img.data),
+                2 => create_texture_2d_grayscale_alpha(size, &img.data),
                 3 => create_texture_2d_rgb(size, &img.data),
                 4 => create_texture_2d_rgba(size, &img.data),
                 _ => Err(format!("Unsupported image depth: {}", img.depth).into()),
@@ -61,6 +89,8 @@ mod detail {
     pub enum TextureFormat {
         RGB,
         RGBA,
+        Grayscale,
+        GrayscaleAlpha,
     }
 
     pub fn create_texture_2d(
@@ -71,6 +101,8 @@ mod detail {
         let (internal_format, gl_format, pixel_size) = match format {
             TextureFormat::RGB => (gl::RGB8, gl::RGB, 3),
             TextureFormat::RGBA => (gl::RGBA8, gl::RGBA, 4),
+            TextureFormat::Grayscale => (gl::R8, gl::RED, 1),
+            TextureFormat::GrayscaleAlpha => (gl::RG8, gl::RG, 2),
         };
 
         if data.len() != (size[0] * size[1] * pixel_size) as usize {
@@ -106,6 +138,16 @@ mod detail {
             gl::TextureParameteri(texture, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
             gl::TextureParameteri(texture, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TextureParameteri(texture, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+
+            match format {
+                TextureFormat::Grayscale | TextureFormat::GrayscaleAlpha =>{
+                    // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_SWIZZLE_R, gl::RED as i32);
+                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_SWIZZLE_G, gl::RED as i32);
+                    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_SWIZZLE_B, gl::RED as i32);
+                },
+                _ => {}
+            }
+
         }
 
         Ok(texture)
